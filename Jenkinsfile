@@ -1,8 +1,13 @@
 pipeline {
     agent any
 
+    tools {
+        // "NodeJS-18" est le nom de l'outil configuré dans Jenkins
+        nodejs 'NodeJS-18'
+    }
+
     environment {
-        // 'sonarqube-token' est l'ID du secret que nous allons créer dans Jenkins
+        // 'sonarqube-token' est l'ID du secret que nous avons créé dans Jenkins
         SONAR_TOKEN = credentials('sonarqube-token')
     }
 
@@ -13,20 +18,20 @@ pipeline {
                 sh 'npm install'
             }
         }
+
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                // On utilise l'image Docker officielle de SonarScanner
                 script {
-                    docker.image('sonarsource/sonar-scanner-cli').inside {
-                        sh """
-                           sonar-scanner \
-                           -Dsonar.host.url=http://sonarqube:9000 \
-                           -Dsonar.token=${SONAR_TOKEN}
-                        """
-                    }
+                    def scannerHome = tool 'SonarScanner'
+                    sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.host.url=http://sonarqube:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
+
         stage('Vérification du Quality Gate') {
             steps {
                 timeout(time: 15, unit: 'MINUTES') {
@@ -34,6 +39,7 @@ pipeline {
                 }
             }
         }
+
         stage('Build & Scan Image Docker') {
             steps {
                 script {
