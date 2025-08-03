@@ -6,11 +6,6 @@ pipeline {
         nodejs 'NodeJS-18'
     }
 
-    environment {
-        // 'sonarqube-token' est l'ID du secret que nous avons créé dans Jenkins
-        SONAR_TOKEN = credentials('sonarqube-token')
-    }
-
     stages {
         stage('Build') {
             steps {
@@ -21,19 +16,23 @@ pipeline {
 
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                script {
-                    def scannerHome = tool 'SonarScanner'
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.token=${SONAR_TOKEN}
-                    """
+                // On réutilise le wrapper standard, maintenant que tout est bien configuré
+                // "SonarQube" est le nom du serveur configuré dans Jenkins
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        // "SonarScanner" est le nom de l'outil configuré dans Jenkins
+                        def scannerHome = tool 'SonarScanner'
+                        // On exécute le scanner sans arguments supplémentaires,
+                        // withSonarQubeEnv se charge de l'authentification
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
                 }
             }
         }
 
         stage('Vérification du Quality Gate') {
             steps {
+                // On augmente le temps d'attente pour la première analyse
                 timeout(time: 15, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
