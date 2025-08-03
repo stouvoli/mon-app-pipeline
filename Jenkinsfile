@@ -2,9 +2,7 @@ pipeline {
     agent any
 
     tools {
-        // La section tools ne contient que NodeJS, car SonarScanner sera appelé
-        // directement dans l'étape concernée.
-        nodejs 'NodeJS-18'
+        nodejs 'NodeJS-18' // Nom de l'outil configuré dans Jenkins
     }
 
     stages {
@@ -14,23 +12,18 @@ pipeline {
                 sh 'npm install'
             }
         }
-
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                // On utilise un bloc 'script' pour la logique plus complexe
                 script {
                     // "SonarQube" est le nom du serveur configuré dans Jenkins
                     withSonarQubeEnv('SonarQube') {
-                        // On demande à Jenkins de nous donner le chemin de l'outil
-                        // nommé 'SonarScanner' dans la configuration globale
+                        // "SonarScanner" est le nom de l'outil configuré dans Jenkins
                         def scannerHome = tool 'SonarScanner'
-                        // On exécute le scanner en utilisant son chemin complet
                         sh "${scannerHome}/bin/sonar-scanner"
                     }
                 }
             }
         }
-
         stage('Vérification du Quality Gate') {
             steps {
                 timeout(time: 5, unit: 'MINUTES') {
@@ -38,7 +31,6 @@ pipeline {
                 }
             }
         }
-
         stage('Build & Scan Image Docker') {
             steps {
                 script {
