@@ -5,6 +5,8 @@ pipeline {
         // "NodeJS-18" est le nom que vous avez donné à votre
         // installation de NodeJS dans la configuration de Jenkins
         nodejs 'NodeJS-18'
+        // "SonarScanner" est le nom de votre installation SonarQube Scanner
+        sonarqube 'SonarScanner'
     }
 
     stages {
@@ -17,9 +19,13 @@ pipeline {
 
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                // 'SonarQube' est le nom du serveur configuré dans Jenkins
-                withSonarQubeEnv('SonarQube') { 
-                    sh 'sonar-scanner' 
+                // "SonarQube" est le nom du serveur configuré dans Jenkins
+                withSonarQubeEnv('SonarQube') {
+                    // On demande à Jenkins de nous donner le chemin de l'outil
+                    // nommé 'SonarScanner' dans la configuration globale
+                    def scannerHome = tool 'SonarScanner'
+                    // On exécute le scanner en utilisant son chemin complet
+                    sh "${scannerHome}/bin/sonar-scanner"
                 }
             }
         }
