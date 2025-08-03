@@ -6,11 +6,6 @@ pipeline {
         nodejs 'NodeJS-18'
     }
 
-    environment {
-        // 'sonarqube-token' est l'ID du secret que nous avons créé dans Jenkins
-        SONAR_TOKEN = credentials('sonarqube-token')
-    }
-
     stages {
         stage('Build') {
             steps {
@@ -21,22 +16,23 @@ pipeline {
 
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                script {
-                    // "SonarScanner" est le nom de l'outil configuré dans Jenkins
-                    def scannerHome = tool 'SonarScanner'
-                    // On exécute le scanner en lui passant explicitement le jeton et l'URL
-                    sh """
-                        ${scannerHome}/bin/sonar-scanner \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.token=${SONAR_TOKEN}
-                    """
+                // On réutilise le wrapper standard, maintenant que tout est bien configuré
+                // "SonarQube" est le nom du serveur configuré dans Jenkins
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        // "SonarScanner" est le nom de l'outil configuré dans Jenkins
+                        def scannerHome = tool 'SonarScanner'
+                        // On exécute le scanner sans arguments supplémentaires,
+                        // withSonarQubeEnv se charge de l'authentification
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
                 }
             }
         }
 
         stage('Vérification du Quality Gate') {
             steps {
-                // Fait échouer le pipeline si le Quality Gate de SonarQube n'est pas "PASS"
+                // Cette étape va maintenant trouver le contexte de l'analyse précédente
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
@@ -47,11 +43,7 @@ pipeline {
             steps {
                 script {
                     def imageName = "votre-user/mon-app-node:${env.BUILD_NUMBER}"
-                    echo "--- BUILD DE L'IMAGE DOCKER : ${imageName} ---"
                     sh "docker build -t ${imageName} ."
-
-                    echo "--- SCAN DE L'IMAGE DOCKER ---"
-                    // Fait échouer le build si des vulnérabilités critiques sont trouvées
                     sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${imageName}"
                 }
             }
