@@ -1,6 +1,12 @@
 pipeline {
     agent any
 
+    tools {
+        // "NodeJS-18" est le nom que vous avez donné à votre
+        // installation de NodeJS dans la configuration de Jenkins
+        nodejs 'NodeJS-18'
+    }
+
     stages {
         stage('Build') {
             steps {
