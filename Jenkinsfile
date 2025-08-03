@@ -1,9 +1,9 @@
 pipeline {
     agent any
 
-    tools {
-        // "NodeJS-18" est le nom de l'outil configuré dans Jenkins
-        nodejs 'NodeJS-18'
+    environment {
+        // 'sonarqube-token' est l'ID du secret que nous allons créer dans Jenkins
+        SONAR_TOKEN = credentials('sonarqube-token')
     }
 
     stages {
@@ -13,32 +13,27 @@ pipeline {
                 sh 'npm install'
             }
         }
-
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                // On réutilise le wrapper standard, maintenant que tout est bien configuré
-                // "SonarQube" est le nom du serveur configuré dans Jenkins
-                withSonarQubeEnv('SonarQube') {
-                    script {
-                        // "SonarScanner" est le nom de l'outil configuré dans Jenkins
-                        def scannerHome = tool 'SonarScanner'
-                        // On exécute le scanner sans arguments supplémentaires,
-                        // withSonarQubeEnv se charge de l'authentification
-                        sh "${scannerHome}/bin/sonar-scanner"
+                // On utilise l'image Docker officielle de SonarScanner
+                script {
+                    docker.image('sonarsource/sonar-scanner-cli').inside {
+                        sh """
+                           sonar-scanner \
+                           -Dsonar.host.url=http://sonarqube:9000 \
+                           -Dsonar.token=${SONAR_TOKEN}
+                        """
                     }
                 }
             }
         }
-
         stage('Vérification du Quality Gate') {
             steps {
-                // Cette étape va maintenant trouver le contexte de l'analyse précédente
-                timeout(time: 5, unit: 'MINUTES') {
+                timeout(time: 15, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
-
         stage('Build & Scan Image Docker') {
             steps {
                 script {
