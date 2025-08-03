@@ -2,7 +2,13 @@ pipeline {
     agent any
 
     tools {
-        nodejs 'NodeJS-18' // Nom de l'outil configuré dans Jenkins
+        // "NodeJS-18" est le nom de l'outil configuré dans Jenkins
+        nodejs 'NodeJS-18'
+    }
+
+    environment {
+        // 'sonarqube-token' est l'ID du secret que nous avons créé dans Jenkins
+        SONAR_TOKEN = credentials('sonarqube-token')
     }
 
     stages {
@@ -12,25 +18,31 @@ pipeline {
                 sh 'npm install'
             }
         }
+
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
                 script {
-                    // "SonarQube" est le nom du serveur configuré dans Jenkins
-                    withSonarQubeEnv('SonarQube') {
-                        // "SonarScanner" est le nom de l'outil configuré dans Jenkins
-                        def scannerHome = tool 'SonarScanner'
-                        sh "${scannerHome}/bin/sonar-scanner"
-                    }
+                    // "SonarScanner" est le nom de l'outil configuré dans Jenkins
+                    def scannerHome = tool 'SonarScanner'
+                    // On exécute le scanner en lui passant explicitement le jeton et l'URL
+                    sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.host.url=http://sonarqube:9000 \
+                        -Dsonar.token=${SONAR_TOKEN}
+                    """
                 }
             }
         }
+
         stage('Vérification du Quality Gate') {
             steps {
+                // Fait échouer le pipeline si le Quality Gate de SonarQube n'est pas "PASS"
                 timeout(time: 5, unit: 'MINUTES') {
                     waitForQualityGate abortPipeline: true
                 }
             }
         }
+
         stage('Build & Scan Image Docker') {
             steps {
                 script {
@@ -39,6 +51,7 @@ pipeline {
                     sh "docker build -t ${imageName} ."
 
                     echo "--- SCAN DE L'IMAGE DOCKER ---"
+                    // Fait échouer le build si des vulnérabilités critiques sont trouvées
                     sh "trivy image --exit-code 1 --severity HIGH,CRITICAL ${imageName}"
                 }
             }
