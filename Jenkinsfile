@@ -1,11 +1,6 @@
 pipeline {
     agent any
 
-    tools {
-        // Nom défini dans la Global Tool Configuration de Jenkins
-        sonarqube 'SonarScanner'
-    }
-
     stages {
         stage('Build') {
             steps {
