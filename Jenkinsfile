@@ -47,7 +47,7 @@ pipeline {
             steps {
                 script {
                     def imageName = "votre-user/mon-app-node:${env.BUILD_NUMBER}"
-                    def customImage = docker.build(imageName) [cite: 7]
+                    def customImage = docker.build(imageName)
 
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --exit-code 1 --severity HIGH,CRITICAL ${imageName}"
                 }
