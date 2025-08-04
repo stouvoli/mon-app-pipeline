@@ -19,14 +19,17 @@ pipeline {
 
         stage('Analyse SonarQube (SAST & SCA)') {
             steps {
-                script {
-                    // Le nom du réseau est basé sur le nom du dossier de votre projet
-                    docker.image('sonarsource/sonar-scanner-cli').inside('--network mon-app-pipeline_default') {
-                        sh """
-                           sonar-scanner \
-                           -Dsonar.host.url=http://sonarqube:9000 \
-                           -Dsonar.token=${SONAR_TOKEN}
-                        """
+                // La seule modification est l'ajout de ce wrapper
+                withSonarQubeEnv('SonarQube') {
+                    script {
+                        // Le nom du réseau est basé sur le nom du dossier de votre projet 
+                        docker.image('sonarsource/sonar-scanner-cli').inside('--network mon-app-pipeline_default') {
+                            sh """
+                               sonar-scanner \\
+                               -Dsonar.host.url=http://sonarqube:9000 \\
+                               -Dsonar.token=${SONAR_TOKEN}
+                            """
+                        }
                     }
                 }
             }
@@ -44,7 +47,7 @@ pipeline {
             steps {
                 script {
                     def imageName = "votre-user/mon-app-node:${env.BUILD_NUMBER}"
-                    def customImage = docker.build(imageName)
+                    def customImage = docker.build(imageName) [cite: 7]
 
                     sh "docker run --rm -v /var/run/docker.sock:/var/run/docker.sock aquasec/trivy:latest image --exit-code 1 --severity HIGH,CRITICAL ${imageName}"
                 }
