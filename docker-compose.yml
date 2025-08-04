@@ -1,4 +1,5 @@
 version: '3.8'
+
 services:
   sonarqube-db:
     image: postgres:alpine
@@ -9,6 +10,7 @@ services:
       - POSTGRES_DB=sonarqube
     volumes:
       - sonarqube_db_data:/var/lib/postgresql/data
+
   sonarqube:
     image: sonarqube
     container_name: sonarqube
@@ -23,16 +25,18 @@ services:
       - SONAR_ES_JAVA_OPTS=-Xmx512m -Xms512m
     volumes:
       - sonarqube_data:/opt/sonarqube/data
+
   jenkins:
-    image: jenkins/jenkins:lts
+    image: jenkins/jenkins:lts-jdk11
     container_name: jenkins
     ports:
       - "8080:8080"
       - "50000:50000"
-    user: "1000:1001" # Remplacez 1001 par l'ID de votre groupe docker
+    user: "root"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - jenkins_home:/var/jenkins_home
+
 volumes:
   sonarqube_db_data:
   sonarqube_data:
