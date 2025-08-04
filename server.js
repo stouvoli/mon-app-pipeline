@@ -1,6 +1,6 @@
 const express = require('express');
 // !!! VULNÉRABILITÉ INTENTIONNELLE POUR LE TEST SAST !!!
-const dbPassword = "SuperSecretPassword123!";
+// const dbPassword = "SuperSecretPassword123!";
 const app = express();
 const PORT = 3000;
 
